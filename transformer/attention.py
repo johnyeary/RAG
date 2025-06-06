@@ -26,3 +26,32 @@ def scaled_dot_product_attention(q,k,v, mask=None):
     output = torch.matmul(attn_weights, v) #(batch,heads,seq_len, d_k)
 
     return output,attn_weights
+
+class MultiHeadSelfAttention(nn.Module):
+    def __init__(self,d_model,num_heads):
+        super().__init__()
+        assert d_model % num_heads == 0, "d_model must be divisible by num_heads"
+
+        self.d_model = d_model
+        self.num_heads = num_heads
+        self.head_dim = d_model // num_heads
+
+        self.q_linear = nn.Linear(d_model, d_model)
+        self.k_linear = nn.Linear(d_model, d_model)
+        self.v_linear = nn.Linear(d_model, d_model)
+        self.out_proj = nn.Linear(d_model, d_model)
+    
+    def forward(self, x, mask=None):
+        B, T, D = x.size()
+
+        #linear projections
+        Q = self.q_linear(x).view(B,T,self.num_heads,self.head_dim).transpose(1,2)
+        K = self.k_linear(x).view(B,T,self.num_heads,self.head_dim).transpose(1,2)
+        V = self.v_linear(x).view(B,T,self.num_heads,self.head_dim).transpose(1,2)
+
+        # Get attention
+        attn_out,attn_weights = scaled_dot_product_attention(Q,K,V,mask)
+       
+        # Merge heads
+        out = attn_out.transpose(1,2).contiguous().view(B,T,D)
+        return self.out_proj(out), attn_weights 
