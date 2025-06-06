@@ -96,3 +96,25 @@ class TestMultiHeadAttention(unittest.TestCase):
         grads = [p.grad for p in self.attn.parameters() if p.requires_grad]
         self.assertTrue(any(g is not None for g in grads))
         
+    def test_single_head_equivalence(self):
+        x = torch.randn(self.batch,self.seq_len,self.d_model)
+        attn1 = MultiHeadSelfAttention(self.d_model,num_heads = 1)
+        out_multi,weights_multi = attn1(x)
+
+        #manually compute linear projections
+        Q_chk = attn1.q_linear(x)
+        K_chk = attn1.k_linear(x)
+        V_chk = attn1.v_linear(x)
+
+        Qh = Q_chk.view(self.batch, self.seq_len, 1, self.d_model).transpose(1, 2)  # (batch, 1, seq_len, d_model)
+        Kh = K_chk.view(self.batch, self.seq_len, 1, self.d_model).transpose(1, 2)
+        Vh = V_chk.view(self.batch, self.seq_len, 1, self.d_model).transpose(1, 2)
+        attn_out_chk, weights_single = scaled_dot_product_attention(Qh,Kh,Vh,mask=None)
+
+        #concat heads (really one head)
+        out_single_head = attn_out_chk.transpose(1,2).contiguous().view(self.batch,self.seq_len,self.d_model)
+        out_comp = attn1.out_proj(out_single_head)
+
+        assert torch.allclose(out_multi,out_comp,atol=1e-6)
+        assert torch.allclose(weights_multi, weights_single,atol=1e-6)
+        
