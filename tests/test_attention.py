@@ -1,6 +1,7 @@
 import unittest
 import torch
 from transformer.attention import scaled_dot_product_attention
+from transformer.attention import MultiHeadSelfAttention
 
 class testAttention(unittest.TestCase):
     def test_attention_shape_no_mask(self):
@@ -61,3 +62,37 @@ class testAttention(unittest.TestCase):
         self.assertTrue(torch.allclose(out,v),"out should match")
         self.assertTrue(torch.allclose(attn,torch.tensor([1.0])))
 
+class TestMultiHeadAttention(unittest.TestCase):
+    def setup_method(self,method):
+        self.batch = 2
+        self.seq_len = 5
+        self.d_model = 16
+        self.num_heads = 4
+        self.attn = MultiHeadSelfAttention(self.d_model,self.num_heads)
+
+    def test_output_and_weight_shapes(self):
+        x = torch.randn(self.batch,self.seq_len,self.d_model)
+        out, weights = self.attn(x,mask=None)
+
+        self.assertEqual(out.shape, (self.batch, self.seq_len, self.d_model))
+        self.assertEqual(weights.shape, (self.batch, self.num_heads, self.seq_len, self.seq_len))
+
+    def test_padding_mask(self):
+        x = torch.randn(self.batch, self.seq_len,self.d_model)
+        # mask first token
+        attn_mask = torch.tensor([[[[0,1,1,1,1]]]],dtype=torch.uint8)
+        out,weights = self.attn(x,mask=attn_mask)
+        # for each head, and query position, confirm weight at index 0 is 0 
+        self.assertTrue(torch.all(weights[...,0] == 0))
+    
+    def test_gradient_flow(self):
+        #ensure backprop works
+        x = torch.randn(self.batch,self.seq_len,self.d_model,requires_grad=True)
+        out,_ = self.attn(x)
+        loss = out.sum()
+        loss.backward()
+        self.assertIsNotNone(x.grad)
+        # at least one parameter should have gradient
+        grads = [p.grad for p in self.attn.parameters() if p.requires_grad]
+        self.assertTrue(any(g is not None for g in grads))
+        
