@@ -97,6 +97,7 @@ class TestMultiHeadAttention(unittest.TestCase):
         self.assertTrue(any(g is not None for g in grads))
         
     def test_single_head_equivalence(self):
+        # test to see if I have indexing or reshaping issues
         x = torch.randn(self.batch,self.seq_len,self.d_model)
         attn1 = MultiHeadSelfAttention(self.d_model,num_heads = 1)
         out_multi,weights_multi = attn1(x)
