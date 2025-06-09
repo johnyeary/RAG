@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-import torch.nn.Functional as F
+import torch.nn.functional as F
 from transformer.attention import MultiHeadSelfAttention
 
 class EncoderLayer(nn.Module):
