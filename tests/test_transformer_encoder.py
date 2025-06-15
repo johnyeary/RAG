@@ -1,7 +1,11 @@
 import unittest
 import torch
 import copy
+import torch.nn as nn
 from transformer.transformer_encoder import TransformerEncoder
+class Identity(nn.Module):
+    def forward(self,x):
+        return x
 
 class TestTransformerEncoder(unittest.TestCase):
     def setup_method(self,method):
@@ -29,13 +33,11 @@ class TestTransformerEncoder(unittest.TestCase):
         return mask.unsqueeze(0).unsqueeze(1).expand(batch_size,1,seq_len,seq_len)
 
     def test_output_shape(self):
-        test_encoder = copy.deepcopy(self.encoder)
-        out = test_encoder(self.token_ids)
+        out = self.encoder(self.token_ids)
         self.assertEqual(out.shape,(self.batch_size, self.seq_len, self.d_model))
 
     def test_gradients_flow(self):
-        test_encoder = copy.deepcopy(self.encoder)
-        out = test_encoder(self.token_ids)
+        out = self.encoder(self.token_ids)
         loss = out.sum()
         loss.backward()
         grads = [p.grad for p in self.encoder.parameters() if p.requires_grad]
@@ -44,6 +46,7 @@ class TestTransformerEncoder(unittest.TestCase):
     def test_zero_layer_identity(self):
         test_encoder = copy.deepcopy(self.encoder)
         #test_encoder.eval()
+        # zero out weights/biases, set norm to identity. Test if embeddings in = output
         for layer in test_encoder.layers:
             layer.ff[0].weight.data.zero_()
             layer.ff[0].bias.data.zero_()
@@ -57,10 +60,8 @@ class TestTransformerEncoder(unittest.TestCase):
             layer.self_attn.v_linear.bias.data.zero_()
             layer.self_attn.out_proj.weight.data.zero_()
             layer.self_attn.out_proj.bias.data.zero_()
-            layer.attn_norm.weight.data.fill_(1.0)
-            layer.attn_norm.bias.data.zero_()
-            layer.ff_norm.weight.data.fill_(1.0)
-            layer.ff_norm.bias.data.zero_()
+            layer.attn_norm = Identity()
+            layer.ff_norm = Identity()
         embeddings = test_encoder.embedding(self.token_ids)
         output = test_encoder(self.token_ids)
         print(f"Output shape {output.shape} embeddings.shape {embeddings.shape}")
