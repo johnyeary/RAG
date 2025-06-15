@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 from transformer.encoder_layer import EncoderLayer
-from transformer.embeddings import Embeddings
+from transformer.embeddings import TokenPositionalEmbedding
 class TransformerEncoder(nn.Module):
     def __init__(
         self,
@@ -13,18 +13,17 @@ class TransformerEncoder(nn.Module):
         max_len: int = 512,
         dropout: float = 0.1
     ):
-    super().__init__()
-    # Token & positional embeddings
-    self.embedding = Embeddings(vocab_size = vocab_size, d_model = d_model, max_len = max_len)
-    self.dropout = nn.Dropout(dropout)
-
-    self.layers = nn.ModuleList([
-        EncoderLayer(d_model,num_heads,d_ff,dropout)
-        for _ in range(num_layers)
-    ])
+        super().__init__()
+        # Token & positional embeddings
+        self.embedding = TokenPositionalEmbedding(vocab_size = vocab_size, d_model = d_model, max_len = max_len)
+        self.dropout = nn.Dropout(dropout)
+        self.layers = nn.ModuleList([
+            EncoderLayer(d_model,num_heads,d_ff,dropout)
+            for _ in range(num_layers)
+        ])
 
     def forward(self, token_ids, mask=None):
-        x = self.embedding(toke_ids)
+        x = self.embedding(token_ids)
         x = self.dropout(x)
 
         for layer in self.layers:
