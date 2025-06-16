@@ -1,10 +1,9 @@
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 from transformer.attention import MultiHeadSelfAttention
 
 class EncoderLayer(nn.Module):
-    def __init__(self, d_model:int, num_heads:int,d_ff:int,dropout:float = 1.0):
+    def __init__(self, d_model:int, num_heads:int,d_ff:int,dropout:float = 0.1):
         super().__init__()
         self.self_attn = MultiHeadSelfAttention(d_model, num_heads)
         self.attn_dropout = nn.Dropout(dropout)

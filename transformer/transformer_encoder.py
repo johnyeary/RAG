@@ -21,6 +21,7 @@ class TransformerEncoder(nn.Module):
             EncoderLayer(d_model,num_heads,d_ff,dropout)
             for _ in range(num_layers)
         ])
+        self.final_norm = nn.LayerNorm(d_model)
 
     def forward(self, token_ids, mask=None):
         x = self.embedding(token_ids)
@@ -29,4 +30,4 @@ class TransformerEncoder(nn.Module):
         for layer in self.layers:
             x = layer(x,mask)
         
-        return x
+        return self.final_norm(x)
