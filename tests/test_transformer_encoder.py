@@ -62,6 +62,7 @@ class TestTransformerEncoder(unittest.TestCase):
             layer.self_attn.out_proj.bias.data.zero_()
             layer.attn_norm = Identity()
             layer.ff_norm = Identity()
+        test_encoder.final_norm = Identity()
         embeddings = test_encoder.embedding(self.token_ids)
         output = test_encoder(self.token_ids)
         print(f"Output shape {output.shape} embeddings.shape {embeddings.shape}")
